@@ -1,0 +1,32 @@
+
+;;; <summary>
+;;; The main entry point for the application.
+;;; </summary>
+main Orders
+
+	record header
+		oh_number	,d6	;Order Number
+		oh_customer	,a8	;Item Number
+		oh_date		,d8	;Order Date
+		oh_contact	,a20	;Order Placed By
+		oh_salesrep	,d4	;Sales Rep Code
+
+	structure strDetail
+		od_number	,d6	;Order Number
+		od_item		,d4	;Item Number
+		od_party	,a10	;Part Number
+		od_qty		,d5	;Quandtity Ordered
+		od_unit_price	,d8.2	;Unit Price
+
+	record
+		detail		,strDetail
+
+	record
+		system_date	,a14	;System Date (yyyymmddhhmmss)
+			overlay_date	,d8@system_date ;yyyymmdd
+
+proc
+	overlay_date = %datetime
+	stop
+
+endmain
