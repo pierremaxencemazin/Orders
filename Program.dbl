@@ -21,7 +21,7 @@ main Orders
 	record
 		detail		,strDetail
 
-	record
+	record 
 		system_date	,a14	;System Date (yyyymmddhhmmss)
 			overlay_date	,d8@system_date ;yyyymmdd
 
