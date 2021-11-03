@@ -19,14 +19,45 @@ main Orders
 		od_unit_price	,d8.2	;Unit Price
 
 	record
-		detail		,strDetail
-
-	record 
-		system_date	,a14	;System Date (yyyymmddhhmmss)
-			overlay_date	,d8@system_date ;yyyymmdd
-
+		detail		,strDetail 
+		system_date	,a14		 ;System Date (yyyymmddhhmmss)
+		overlay_date	,d8@system_date ;yyyymmdd
+		keyPressed	,a1
 proc
-	overlay_date = %datetime
+	call startup
+	call process
+	call shutdown
+
+	
 	stop
+
+startup,	;internal subroutine
+	
+	system_date = %datetime
+	overlay_date = %datetime
+	;Open terminal channel
+	open(1,o,"tt:")
+
+	;Configure the environment
+	xcall flags(1001010,1)
+	
+	;Clear screen
+	display(1,$scr_clr(screen))
+	return
+process,	;internal subroutine
+
+	;Display message
+	display(1,$scr_pos(1,1),"Welcome")
+	display(1,$scr_pos(2,1),"The date : ",^a(overlay_date))
+	display(1,$scr_pos(3,1),"Press a key :")
+	accept(1,(keyPressed))
+	return
+shutdown,	;internal subroutine
+	;Clear screen
+	display(1,$scr_clr(screen))
+	
+	;Close terminal
+	close 1
+	return
 	 
 endmain
