@@ -9,7 +9,7 @@ main Orders
 	.include "INC:detail.def"
 	
 
-	
+	 
 
 	record
 		detail		,strDetail 
