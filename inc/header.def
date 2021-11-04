@@ -1,0 +1,6 @@
+record header
+	oh_number	,d6	;Order Number
+	oh_customer	,a8	;Item Number
+	oh_date		,d8	;Order Date
+	oh_contact	,a20	;Order Placed By
+	oh_salesrep	,d4	;Sales Rep Code

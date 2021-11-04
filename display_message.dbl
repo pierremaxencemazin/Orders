@@ -1,0 +1,27 @@
+subroutine display_message
+	required in message,a
+	endparams
+	.include "WND:windows.def"
+	record
+		width		,d4
+		col		,d4
+		winId		,d4	;Id of the window
+		keyPressed	,a1
+	endrecord
+proc
+	width = %trim(message) + 2
+	col = (80 - width) / 2
+
+	xcall w_proc(WP_CREATE,winId,"MSGWIN",5,width)
+	xcall w_brdr(winId,WB_ON,WB_TITLE,"Message",WB_TPOS,WBT_TOP,WBT_CENTER)
+	xcall w_disp(winId,WD_POS,2,2,%atrim(message))
+	xcall w_proc(WP_PLACE,winId,1,col)
+	xcall w_disp(winId,WD_ACCEPT,keyPressed)
+
+	;Checking if there is inputs in buffer like when you press the "ENTER" key
+	while (%ttsts)
+		xcall w_disp(winId,WD_ACCEPT,keyPressed)
+
+	xcall w_proc(WP_DELETE,winId)
+	xreturn
+endsubroutine

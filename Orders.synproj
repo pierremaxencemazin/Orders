@@ -14,6 +14,7 @@
     <EnableCommonProperties>True</EnableCommonProperties>
     <CommonPropertiesFileLocation>$(SolutionDir)Common.props</CommonPropertiesFileLocation>
     <RootNamespace>Orders</RootNamespace>
+    <ProjEnvVars />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
     <IncludeDebugInformation>true</IncludeDebugInformation>
@@ -48,6 +49,7 @@
     <DebugOptimize>Optimize</DebugOptimize>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="display_message.dbl" />
     <Compile Include="Program.dbl" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Synergex\dbl\Synergex.SynergyDE.Traditional.targets" />

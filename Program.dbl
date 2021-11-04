@@ -4,25 +4,20 @@
 ;;; </summary>
 main Orders
 
-	record header
-		oh_number	,d6	;Order Number
-		oh_customer	,a8	;Item Number
-		oh_date		,d8	;Order Date
-		oh_contact	,a20	;Order Placed By
-		oh_salesrep	,d4	;Sales Rep Code
+	.include "WND:windows.def"
+	.include "INC:header.def"
+	.include "INC:detail.def"
+	
 
-	structure strDetail
-		od_number	,d6	;Order Number
-		od_item		,d4	;Item Number
-		od_party	,a10	;Part Number
-		od_qty		,d5	;Quandtity Ordered
-		od_unit_price	,d8.2	;Unit Price
+	
 
 	record
 		detail		,strDetail 
 		system_date	,a14		 ;System Date (yyyymmddhhmmss)
 		overlay_date	,d8@system_date ;yyyymmdd
-		keyPressed	,a1
+		
+		
+
 proc
 	call startup
 	call process
@@ -34,28 +29,44 @@ proc
 startup,	;internal subroutine
 	
 	system_date = %datetime
-	overlay_date = %datetime
 	;Open terminal channel
 	open(1,o,"tt:")
 
 	;Configure the environment
 	xcall flags(1001010,1)
 	
+	;Initialize the window environment
+	xcall w_init(1,1,5)
+
 	;Clear screen
 	display(1,$scr_clr(screen))
+
+	;Display title
+	xcall w_caption(WC_SET,"My First Synergy Application")
+
 	return
 process,	;internal subroutine
 
-	;Display message
-	display(1,$scr_pos(1,1),"Welcome")
-	display(1,$scr_pos(2,1),"The date : ",^a(overlay_date))
-	display(1,$scr_pos(3,1),"Press a key :")
-	accept(1,(keyPressed))
+;	;Display message
+;	display(1,$scr_pos(1,1),"Welcome")
+;	display(1,$scr_pos(2,1),"The date : ",^a(overlay_date))
+;	display(1,$scr_pos(3,1),"Press a key :")
+;	accept(1,(keyPressed))
+
+	;Call of the external subroutine
+	xcall display_message("Hello there")
+
+	;Show message in window
+	
+
 	return
 shutdown,	;internal subroutine
 	;Clear screen
 	display(1,$scr_clr(screen))
 	
+	;Close window
+	xcall w_exit
+
 	;Close terminal
 	close 1
 	return
