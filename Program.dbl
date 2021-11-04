@@ -13,17 +13,16 @@ main Orders
 
 	record
 		detail		,strDetail 
-		system_date	,a14		 ;System Date (yyyymmddhhmmss)
-		overlay_date	,d8@system_date ;yyyymmdd
-		
+		system_date	,a14		;System Date (yyyymmddhhmmss)
+		overlay_date	,d8@system_date	;yyyymmdd
+		windowId		,d4
+		menuItem		,a1
 		
 
 proc
 	call startup
 	call process
 	call shutdown
-
-	
 	stop
 
 startup,	;internal subroutine
@@ -54,11 +53,32 @@ process,	;internal subroutine
 ;	accept(1,(keyPressed))
 
 	;Call of the external subroutine
-	xcall display_message("Hello there")
+;	xcall display_message("Hello there")
 
 	;Show message in window
 	
+	xcall create_window(windowId,"MENU",9,40,5,20,"Order Processing Menu")
 
+	xcall display_text(windowId,2,2,"[A] Add an order")
+	xcall display_text(windowId,4,2,"[V] View an order")
+	xcall display_text(windowId,6,2,"[E] Add an order")
+	xcall display_text(windowId,8,2,"Select an option :")
+	repeat
+	begin
+		xcall wait_key(windowId,8,20,menuItem)
+
+		using menuItem select
+		("A","a"),
+			xcall display_message("You selected ADD")
+		("E","e"),
+			exitloop
+		("V","v"),
+			xcall display_message("You selected VIEW")
+		(),
+			xcall display_message("Invalid option")
+		endusing
+	end
+	xcall delete_window(windowId)
 	return
 shutdown,	;internal subroutine
 	;Clear screen

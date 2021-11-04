@@ -1,0 +1,17 @@
+subroutine wait_key
+	required in windowId		,n
+	required in row			,n
+	required in col			,n
+	required out keyPressed	,a
+	endparams
+	.include "WND:windows.def"
+	
+proc
+	xcall w_disp(windowId,WD_POS,row,col,WD_ACCEPT,keyPressed)
+	
+	;Checking if there is inputs in buffer like when you press the "ENTER" key
+	while (%ttsts)
+		xcall w_disp(windowId,WD_ACCEPT,keyPressed)
+
+	xreturn
+endsubroutine

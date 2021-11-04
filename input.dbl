@@ -1,0 +1,221 @@
+subroutine input
+	required in windowID		,n
+	required in row			,n
+	required in col			,n
+	required out mismatch field	,n
+	optional in isRequired		,n
+	optional in negativeOk		,n
+	optional in isDateField		,n
+	endparams
+	.include "WND:windows.def"
+
+	record
+		len		,d4
+		temp_i		,d8
+		temp_a		,a80
+		temp_id		,d28.10
+		temp_d		,d18
+		spaces		,a80
+		temp_date	,d8
+		temp_year	,d4@temp_date
+		temp_month	,d2@temp_date
+		temp_day	,d2@temp_date
+		jp		,d4
+		tmpchar		,a1
+		pending		,d4
+proc
+	using ^datatype(4) select
+	(D_TYPE_A),
+		call AlphaInput
+	(D_TYPE_D),
+		call DecimalInput
+	(D_TYPE_ID),
+		call ImpliedInput
+	(D_TYPE_I),
+		call IntegerInput
+	endusing
+	xreturn
+
+AlphaInput,
+	repeat
+	begin
+		len=^size(field)
+		xcall w_disp(windowID,
+		&	WD_POS,row,col,
+		&	WD_READS,temp_a(1:len))
+
+		if(^passed(isRequired)&&(temp_a(1:len).eqs.""))
+			nextloop
+		^a(field)=temp_a
+		exitloop
+	end
+	return
+
+DecimalInput,
+	repeat
+	begin
+		len=(^size(field))
+
+		if(^passed(negativeOk))
+			incr len
+		xcall w_disp(windowID,
+		&	WD_POS,row,col,
+		&	spaces(1:len),
+		&	WD_POS,row,col,
+		&	WD_READS,temp_a(1:len))
+
+		onerror ($ERR_DIGIT) ivd
+		temp_d=temp_a(1:len)
+		offerror
+
+		if (false)
+		begin
+		ivd,
+			offerror
+			nextloop
+		end
+		if(^passed(isRequired)&&(temp_a(1:len).eqs.""))
+			nextloop
+
+		if(!^passed(negativeOk)&&(temp_d<0))
+			nextloop
+		
+		if (^size(field)==8)&&(^passed(isDateField))
+		begin
+			if(!temp_d)
+			begin
+				^a(temp_date)=%datetime
+				temp_d = ^a(temp_date(5:4)) + ^a(temp_date(1:4))
+			end
+
+			temp_a(1:10)=temp_d,"XX/XX/XXXX"
+
+			temp_month=temp_d(11:2)
+			temp_day=temp_d(13:2)
+			temp_year = temp_d(15:4)
+
+			begin
+				onerror ($ERR_INVDATE) ivdate
+				jp = %jperiod(temp_date)
+				offerror
+				exit
+		ivdate,
+				offerror
+				xcall w_disp(windowID,
+				&	WD_POS,row,col,
+				&	"Invalid date!",
+				&	WD_ACCEPT,tmpchar,
+				&	WD_POS,row,col,
+				&	"               ")
+
+				do
+				begin
+					xcall ttsts(pending)
+					if(pending)
+					begin
+						xcall w_disp(windowID,
+						&	WD_POS,row,col,
+						&	WD_ACCEPT,tmpchar)
+					end
+				end
+				until (.not.pending)
+				nextloop
+			end
+			temp_d=temp_date
+			xcall w_disp(windowID,
+			&	WD_POS,row,col,
+			&	temp_a(1:10))
+		end
+
+		^a(field)=temp_d,"XXXXXXXXXXXXXXXXXX"
+		exitloop
+	end
+	return
+
+	
+ImpliedInput,
+	repeat
+	begin
+		len=(^size(field)+1)
+
+		if(^passed(negativeOk))
+			incr len
+
+		xcall w_disp(windowID,
+		&	WD_POS,row,col,
+		&	spaces(1:len),
+		&	WD_POS,row,col,
+		&	WD_READS,temp_a(1:len))
+
+		onerror ($ERR_DIGIT) ivid
+		temp_id=temp_a(1:len)
+		offerror
+
+		if(false)
+		begin
+		ivid, offerror
+			nextloop
+
+		end
+
+		if(^passed(isRequired)&&(temp_a(1:len).eqs.""))
+			nextloop
+
+		if((!^passed(negativeOk))&&(temp_id<0))
+			nextloop
+
+		^argn(4)=temp_id
+		exitloop
+	end
+	return
+
+IntegerInput,
+	repeat
+	begin
+		case ^size(field) of
+		begincase
+		1: len=3
+		2: len=5
+		4: len=10
+		8: len=19
+		endcase
+
+		if ^passed(negativeOk)
+			incr len
+		xcall w_disp(windowID,
+		&	WD_POS,row,col,
+		&	spaces(1:len),
+		&	WD_POS,row,col,
+		&	WD_READS,temp_a(1:len))
+
+		onerror ($ERR_DIGIT) ivi
+		temp_i=temp_a(1:len)
+		offerror
+		if %false
+		begin
+		ivi,
+			offerror
+			nextloop
+		end
+
+		if(^passed(isRequired)&&(temp_a(1:len).eqs.""))
+			nextloop
+
+		if(!^passed(negativeOk)&&(temp_i<0))
+			nextloop
+
+		^argn(4)=temp_i
+
+		exitloop
+
+	end
+
+	return
+
+
+
+
+
+
+
+endsubroutine

@@ -1,0 +1,20 @@
+subroutine create_window
+	required out windowId	,n
+	required in name	,a
+	required in height	,n
+	required in width	,n
+	required in row		,n
+	required in col		,n
+	optional in titleWindow	,a
+	endparams
+	.include "WND:windows.def"
+proc
+	xcall w_proc(WP_CREATE,windowId,name,height,width)
+	xcall w_proc(WP_PLACE,windowId,row,col)
+	if(^passed(titleWindow))
+	
+	begin
+		xcall w_brdr(windowId,WB_ON,WB_TITLE,titleWindow,WB_TPOS,WBT_TOP,WBT_CENTER)
+	end
+	xreturn
+endsubroutine
