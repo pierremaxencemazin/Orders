@@ -1,20 +1,22 @@
 subroutine display_message
-	required in message,a
-	endparams
-	.include "WND:windows.def"
-	record
-		width		,d4
-		col		,d4
-		winId		,d4	;Id of the window
-		keyPressed	,a1
-	endrecord
+    required in aMessage, a
+    endparams
+    .include "WND:windows.def"
+    record
+        width,      i4
+        col,        i4
+        msgwin,     i4
+        onechar,    a1
+    endrecord
 proc
-	width = %trim(message) + 2
-	col = (80 - width) / 2
+    width = %trim(aMessage) + 2
+    col = (80 - width) / 2
 
-	xcall create_window(winId,"MSGWIN",3,width,10,col,"Message")
-	xcall display_text(winId,2,2,message)
-	xcall wait_key(winId,2,width,keyPressed)
-	xcall delete_window(winId)
-	xreturn
+    xcall create_window(msgwin,"MSGWIN",3,width,10,col,"Message")
+    xcall display_text(msgwin,2,2,aMessage)
+    xcall wait_key(msgwin,2,width,onechar)
+    xcall delete_window(msgwin)
+
+
+    xreturn
 endsubroutine

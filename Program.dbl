@@ -1,343 +1,369 @@
 
-;;; <summary>
-;;; The main entry point for the application.
-;;; </summary>
+   
+
 main Orders
 
 	.include "WND:windows.def"
 	.include "INC:header.def"
-	.include "INC:detail.def"
-	
+        .include "INC:detail.def"
+;    .include "HEADER" repository, record="header"
+;    .include "DETAIL" repository, structure="strDetail"
 
-	 
+    record
+        tt,             i4
+        menuWindow,     i4
+        orderWindow,    i4
+        itemWindow,     i4
 
-	record
-		;detail			,strDetail 
-		system_date		,a14		;System Date (yyyymmddhhmmss)
-		overlay_date		,d8@system_date	;yyyymmdd
-		windowId		,d4
-		menuItem		,a1
-		windowOrderId		,d4
-		windowDetail		,d4
+        ;File channel numbers
+        chnHeader,      i4
+        chnDetail,      i4
 
-		;File channel numbers
-		chn_header		,d4
-		chn_detail		,d4
-		
-	record
-		mh			,D_HANDLE
-		ms			,d4
-		mc			,d4
+        ;detail,         strDetail
+        group now, a
+            year,           a4
+            month,          a2
+            day,            a2
+            hour,           a2
+            minute,         a2
+            second,         a2
+        endgroup
+        menuItem,           a1
+    endrecord
+
+    ;Dynamic memory tracking data
+    record
+        mh,             D_HANDLE    ;Dynamic memory handle
+        ms,             i4          ;Size of dynamic memory in rows
+        mc,             i4          ;Number of rows currently used
+    endrecord
 
 proc
-	call startup
-	call process
-	call shutdown
-	stop
 
-startup,	;internal subroutine
-	
-	system_date = %datetime
-	;Open terminal channel
-	open(1,o,"tt:")
+    call startup
+    call process
+    call shutdown
 
-	;Configure the environment
-	xcall flags(1001010,1)
-	
-	;Initialize the window environment
-	xcall w_init(1,1,5)
+    stop
 
-	;Clear screen
-	display(1,$scr_clr(screen))
+    ;----------------------------------------------------------
+    ;Startup code
+    ;
+startup,
 
-	;Display title
-	xcall w_caption(WC_SET,"My First Synergy Application")
+    now = %datetime
 
-	;Open the order header file
-	repeat
-	begin
-		open(chn_header=0,U:I,"DAT:header.ism") [$ERR_FNF=hnf]
-		exitloop
-	hnf,
-		;Order header file is missing, create a new one
-		xcall isamc("DAT:header.ism",^size(header),1,"start=1,length=6,nodups,nomodify")
-		
-	end
-	
+    ;Open the terminal channel
+    open(tt=0,o,"tt:")
 
+    ;Configure the terminal environment
+    xcall flags(7004020,1)
 
-	
-	repeat
-	begin
-		open(chn_detail=0,U:I,"DAT:detail.ism") [$ERR_FNF=dnf]
-		exitloop
-	dnf,
-		;Order header file is missing, create a new one
-		xcall isamc("DAT:detail.ism",^size(strDetail),1,"start=7:1,length=6:4,nodups,nomodify")
-		
-	end
-	
+    ;Initialize the Synergy Windows environment
+    xcall w_init(1,tt,5)
 
+    ;Clear the screen
+    display(tt,$scr_clr(SCREEN))
 
+    ;Display a title in the main application drag-bar
+    xcall w_caption(WC_SET,"Order Entry Application")
 
+    ;Open the order header file
 
+    repeat
+    begin
+        open(chnHeader=0,U:I,"DAT:header.ism") [$ERR_FNF=hnf]
+        exitloop
+    hnf,;Order header file is missing, create a new one
+        xcall isamc("DAT:header.ism",^size(header),1,"start=1,length=6,nodups,nomodify")
+    end
 
-	;Open the order detail file
-	return
-process,	;internal subroutine
+    ;Open the order detail file
 
-;	;Display message
-;	display(1,$scr_pos(1,1),"Welcome")
-;	display(1,$scr_pos(2,1),"The date : ",^a(overlay_date))
-;	display(1,$scr_pos(3,1),"Press a key :")
-;	accept(1,(keyPressed))
+    repeat
+    begin
+        open(chnDetail=0,U:I,"DAT:detail.ism") [$ERR_FNF=dnf]
+        exitloop
+    dnf,;Order detail file is missing, create a new one
+        xcall isamc("DAT:detail.ism",^size(strDetail),1,"start=1:7,length=6:4,nodups,nomodify")
+    end
 
-	;Call of the external subroutine
-;	xcall display_message("Hello there")
+    return
 
-	;Show message in window
-	
-	xcall create_window(windowId,"MENU",9,40,5,20,"Order Processing Menu")
+    ;----------------------------------------------------------
+    ;Main processing code
+    ;
+process,
 
-	xcall display_text(windowId,2,2,"[A] Add an order")
-	xcall display_text(windowId,4,2,"[V] View an order")
-	xcall display_text(windowId,6,2,"[E] Add an order")
-	xcall display_text(windowId,8,2,"Select an option :")
-	repeat
-	begin
-		xcall wait_key(windowId,8,20,menuItem)
+    ;Create a window for the application main menu
+    xcall create_window(menuWindow,"MENU",9,21,5,30,"Order Processing Menu")
 
-		using menuItem select
-		("A","a"),
-			call order_header
-		("E","e"),
-			exitloop
-		("V","v"),
-			call view_header
-		(),
-			xcall display_message("Invalid option")
-		endusing
-	end
-	xcall delete_window(windowId)
-	return
-shutdown,	;internal subroutine
+    xcall display_text(menuWindow,2,2,"[A] Add an order")
+    xcall display_text(menuWindow,4,2,"[V] View an order")
+    xcall display_text(menuWindow,6,2,"[E] Exit")
 
-	close chn_header,chn_detail
+    xcall display_text(menuWindow,8,2,"Select an option: ")
 
-	;Clear screen
-	display(1,$scr_clr(screen))
-	
-	;Close window
-	xcall w_exit
+    repeat
+    begin
+        xcall wait_key(menuWindow,8,20,menuItem)
 
-	;Close terminal
-	close 1
-	return
+        using menuItem select
+        ("A","a"),
+            call order_header
+        ("V","v"),
+            call view_header
+        ("E","e"),
+            exitloop
+        (),
+            xcall display_message("Invalid option!")
+        endusing
+    end
 
+    xcall delete_window(menuWindow)
+
+    return
+
+    ;----------------------------------------------------------
+    ;Shutdown code
+    ;
+shutdown,
+
+    ;Close the data files
+    close chnHeader, chnDetail
+
+    ;Clear the screen and close the terminal
+    display(tt,$scr_clr(SCREEN))
+    xcall w_exit
+    close tt
+
+    return
+
+    ;----------------------------------------------------------
+    ;Enter a new order
+    ;
 order_header,
-	xcall create_window(windowOrderId,"ORDER",12,60,7,10,"Order Processing Menu")
+    
+    ;Create a window to allow the user to type in a new order
+    xcall create_window(orderWindow,"ORDER",8,60,7,10,"Create an Order")
 
-	xcall display_text(windowOrderId,2,2,"Order number          :")
-	xcall display_text(windowOrderId,4,2,"Customer account code :")
-	xcall display_text(windowOrderId,5,2,"Order date            :")
-	xcall display_text(windowOrderId,6,2,"Order placed by       :")
-	xcall display_text(windowOrderId,7,2,"Sales rep code        :")
+    xcall display_text(orderWindow,2,2,"Order number     :")
+    xcall display_text(orderWindow,4,2,"Customer account :")
+    xcall display_text(orderWindow,5,2,"Order date       :")
+    xcall display_text(orderWindow,6,2,"Placed by        :")
+    xcall display_text(orderWindow,7,2,"Sales rep code   :")
 
-	repeat
-	begin
-		xcall input(windowOrderId,2,25,header.oh_number)
+    repeat
+    begin
+        xcall input(orderWindow,2,21,header.oh_number)
 
-		;checking entre order number
-		if(!header.oh_number)
-			exitloop
+        ;;Did the user enter an order number?
+        if (!header.oh_number)
+            exitloop
 
-		;Verify that the order does not exist
-		if(%file_access(FileOp.Find,chn_header,,header.oh_number)==FileResult.OK)
-		begin
-			xcall display_message("Order already exists!")
-			nextloop
-		end
+        ;Verify that the order does not already exist
+        if (%file_access(FileOp.Find,chnHeader,,header.oh_number)==FileResult.OK)
+        begin
+            xcall display_message("Order already exists!")
+            nextloop
+        end
 
+        xcall input(orderWindow,4,21,header.oh_customer,true)
+        xcall input(orderWindow,5,21,header.oh_date,,,true)
+        xcall input(orderWindow,6,21,header.oh_contact,true)
+        xcall input(orderWindow,7,21,header.oh_salesrep,true)
 
-		xcall input(windowOrderId,4,25,header.oh_customer,true)
-		xcall input(windowOrderId,5,25,header.oh_date,,,true)
-		xcall input(windowOrderId,6,25,header.oh_contact,true)
-		xcall input(windowOrderId,7,25,header.oh_salesrep,true)
+        ;Allocate dynamic memory
+        mh = %mem_proc(DM_ALLOC,^size(strDetail)*(ms=3))
+        mc = 0
 
-		;Allocate Dynamic Memory
-		mh = %mem_proc(DM_ALLOC,^size(strDetail)*(ms=3))
-		set ms,mc=0
+        ;Get the line items for the order
+        call order_detail
 
-		call order_detail
-		
-		;Save the order
-		if(mc)
-		begin
-			;First save the order header recod
-			if(%File_access(FileOp.Create,chn_header,header)!=FileResult.OK) then
-			begin
-				xcall display_message("Failed to save order header record!")
-			end
-			else
-			begin
-				data ix	,d4
-				for ix from 1 thru mc
-				begin
-					if(%File_access(FileOp.Create,chn_detail,^m(strDetail[ix],mh))!=FileResult.OK) 
-					begin
-						xcall display_message("Failed to save an order detail record!")
-						exitloop
-					end
-					
-				end
-			end
-		end
+        ;Save the order
+        if (mc)
+        begin
+            ;First save the order header record
+            if (%file_access(FileOp.Create,chnHeader,header)!=FileResult.OK) then
+            begin
+                xcall display_message("Failed to save order header record!")
+            end
+            else
+            begin
+                data ix, i4
+                for ix from 1 thru mc
+                begin
+                    if (%file_access(FileOp.Create,chnDetail,^m(strDetail[ix],mh))!=FileResult.OK)
+                    begin
+                        xcall display_message("Failed to an order detail record!")
+                        exitloop
+                    end
+                end
+            end
+        end
 
-		;Deallocate dynamic memory
-		mh = %mem_proc(DM_FREE,mh)
+        ;Deallocate dynamic memory
+        mh = %mem_proc(DM_FREE,mh)
+        set ms,mc=0
 
-		xcall clear_box(windowOrderId,2,21,7,60)
-	end
-	xcall delete_window(windowOrderId)
-	return
-	 
+        xcall clear_box(orderWindow,2,21,7,60)
+    end
+
+    xcall delete_window(orderWindow)
+
+    return
+
+    ;----------------------------------------------------------
+    ;Enter items onto a new order
+    ;
 order_detail,
 
-	
+    ;Create a window to allow the user to type new order items
+    xcall create_window(itemWindow,"ORDERITEM",8,60,10,15,"Add Items to Order")
 
-	xcall create_window(windowDetail,"ORDER",12,60,7,10,"Add Items to Order")
+    xcall display_text(itemWindow,2,2,"Order number : " + %string(header.oh_number,"XXXXXX"))
+    xcall display_text(itemWindow,3,2,"Item number  : ")
 
-	xcall display_text(windowDetail,2,2,"Order number :" + %string(header.oh_number,"XXXXXX"))
-	xcall display_text(windowDetail,3,2,"Item number  :")
-	xcall display_text(windowDetail,5,2,"Part number  :")
-	xcall display_text(windowDetail,6,2,"Quantity     :")
-	xcall display_text(windowDetail,7,2,"Unit price   :")
+    xcall display_text(itemWindow,5,2,"Part number  :")
+    xcall display_text(itemWindow,6,2,"Quantity     :")
+    xcall display_text(itemWindow,7,2,"Unit price   :")
 
-	repeat
-	begin
-		if((mc+=1)>ms)
-		begin
-			mh = %mem_proc(DM_RESIZ,^size(strDetail)*(ms+=3),mh)
-		end
-		^m(strDetail[mc].od_number,mh) = header.oh_number
-		^m(strDetail[mc].od_item,mh) = mc
-		xcall display_text(windowDetail,3,17,%string(mc)+" of " + %string(ms))
+    repeat
+    begin
+        if ((mc+=1)>ms)
+        begin
+            mh = %mem_proc(DM_RESIZ,^size(strDetail)*(ms+=3),mh)
+        end
 
-		xcall input(windowDetail,5,16,^m(strDetail[mc].od_part,mh))
+        ^m(strDetail[mc].od_number,mh) = header.oh_number
+        ^m(strDetail[mc].od_item,mh) = mc
 
-		;checking entre order number
-		if(!^m(strDetail[mc].od_part,mh))
-			exitloop
-		begin
-			mc-=1
-			exitloop
-		end
-		xcall input(windowDetail,6,17,^m(strDetail[mc].od_qty,mh),true)
-		xcall input(windowDetail,7,17,^m(strDetail[mc].od_unit_price,mh),true)
-		
+        xcall display_text(itemWindow,3,17,%string(mc) + " of " + %string(ms))
 
-		xcall clear_box(windowDetail,5,17,7,60)
-	end
-	xcall delete_window(windowDetail)
-	return
+        xcall input(itemWindow,5,17,^m(strDetail[mc].od_part,mh))
 
+        ;;Did the user enter a part number?
+        if (!^m(strDetail[mc].od_part,mh))
+        begin
+            mc-=1
+            exitloop
+        end
 
+        xcall input(itemWindow,6,17,^m(strDetail[mc].od_qty,mh),true)
+        xcall input(itemWindow,7,17,^m(strDetail[mc].od_unit_price,mh),true)
 
+        xcall clear_box(itemWindow,5,17,7,60)
+    end
+
+    xcall delete_window(itemWindow)
+
+    return
+
+    ;----------------------------------------------------------
+    ;Enter a new order
+    ;
 view_header,
-	xcall create_window(windowOrderId,"ORDER",12,60,7,10,"View an order")
+    
+    ;Create a window to allow the user to type in a new order
+    xcall create_window(orderWindow,"ORDER",10,60,7,10,"View an Order")
 
-	xcall display_text(windowOrderId,2,2,"Order number          :")
-	xcall display_text(windowOrderId,4,2,"Customer account code :")
-	xcall display_text(windowOrderId,5,2,"Order date            :")
-	xcall display_text(windowOrderId,6,2,"Order placed by       :")
-	xcall display_text(windowOrderId,7,2,"Sales rep code        :")
-	xcall display_text(windowOrderId,8,2,"Press a key           :")
-	repeat
-	begin
-		xcall input(windowOrderId,2,25,header.oh_number)
+    xcall display_text(orderWindow,2,2,"Order number     :")
+    xcall display_text(orderWindow,4,2,"Customer account :")
+    xcall display_text(orderWindow,5,2,"Order date       :")
+    xcall display_text(orderWindow,6,2,"Placed by        :")
+    xcall display_text(orderWindow,7,2,"Sales rep code   :")
 
-		;checking entre order number
-		if(!header.oh_number)
-			exitloop
+    xcall display_text(orderWindow,9,2,"Press a key      :")
 
-		;Verify that the order does not exist
-		if(%file_access(FileOp.Read,chn_header,header,header.oh_number)!=FileResult.OK)
-		begin
-			xcall display_message("Order does not exists!")
-			nextloop
-		end
+    repeat
+    begin
+        xcall input(orderWindow,2,21,header.oh_number)
 
+        ;;Did the user enter an order number?
+        if (!header.oh_number)
+            exitloop
 
-		xcall display_text(windowOrderId,4,25,header.oh_customer)
-		xcall display_text(windowOrderId,5,25,%string(header.oh_date,"XXXX/XX/XX"))
-		xcall display_text(windowOrderId,6,25,header.oh_contact)
-		xcall display_text(windowOrderId,7,25,%string(header.oh_salesrep))
+        ;Verify that the order does not already exist
+        if (%file_access(FileOp.Read,chnHeader,header,header.oh_number)!=FileResult.OK)
+        begin
+            xcall display_message("Order does not exist!")
+            nextloop
+        end
 
-		begin
-			data keyPressed ,a1
-			xcall wait_key(windowOrderId,8,25,keyPressed)
-		end
-		;Allocate Dynamic Memory
-		mh = %mem_proc(DM_ALLOC,^size(strDetail)*(ms=1))
-		set ms,mc=0
+        xcall display_text(orderWindow,4,21,header.oh_customer)
+        xcall display_text(orderWindow,5,21,%string(header.oh_date,"XXXX/XX/XX"))
+        xcall display_text(orderWindow,6,21,header.oh_contact)
+        xcall display_text(orderWindow,7,21,%string(header.oh_salesrep))
 
-		call view_detail
-		
-		
-		;Deallocate dynamic memory
-		mh = %mem_proc(DM_FREE,mh)
+        begin
+            data onechar, a1
+            xcall wait_key(orderWindow,9,21,onechar)            
+        end
 
-		xcall clear_box(windowOrderId,2,21,7,60)
-	end
-	xcall delete_window(windowOrderId)
-	return
-	 
+        ;Allocate dynamic memory
+        mh = %mem_proc(DM_ALLOC,^size(strDetail)*(ms=1))
+        mc = 0
+
+        ;Get the line items for the order
+        call view_detail
+
+        ;Deallocate dynamic memory
+        mh = %mem_proc(DM_FREE,mh)
+        set ms,mc=0
+
+        xcall clear_box(orderWindow,2,21,7,60)
+    end
+
+    xcall delete_window(orderWindow)
+
+    return
+
+    ;----------------------------------------------------------
+    ;Enter items onto a new order
+    ;
 view_detail,
 
-	
+    ;Create a window to allow the user to type new order items
+    xcall create_window(itemWindow,"ORDERITEM",10,60,10,15,"View Order Items")
 
-	xcall create_window(windowDetail,"ORDER",12,60,7,10,"View Order Items")
+    xcall display_text(itemWindow,2,2,"Order number : " + %string(header.oh_number,"XXXXXX"))
+    xcall display_text(itemWindow,3,2,"Item number  : ")
 
-	xcall display_text(windowDetail,2,2,"Order number :" + %string(header.oh_number,"XXXXXX"))
-	xcall display_text(windowDetail,3,2,"Item number  :")
-	xcall display_text(windowDetail,5,2,"Part number  :")
-	xcall display_text(windowDetail,6,2,"Quantity     :")
-	xcall display_text(windowDetail,7,2,"Unit price   :")
-	xcall display_text(windowDetail,8,2,"Press a key  :")
+    xcall display_text(itemWindow,5,2,"Part number  :")
+    xcall display_text(itemWindow,6,2,"Quantity     :")
+    xcall display_text(itemWindow,7,2,"Unit price   :")
 
-	;;Position to the first item for the order
-	if(%file_access(FileOp.Find,chn_detail,,header.oh_number)!=FileResult.OK)
-	begin
-		nop
-	end
+    xcall display_text(itemWindow,9,2,"Press a key  :")
 
+    ;Position to the first item for the order
+    if (%file_access(FileOp.Find,chnDetail,,header.oh_number)!=FileResult.OK)
+    begin
+        nop
+    end
 
-	repeat
-	begin
-		
-		if((%file_access(FileOp.ReadNext,chn_detail,^m(strDetail[1],mh))!=FileResult.OK)
-			&	||(^m(strDetail[1].od_number,mh) != header.oh_number))
-		begin
-			exitloop
-		end
+    repeat
+    begin
+        if ((%file_access(FileOp.ReadNext,chnDetail,^m(strDetail[1],mh))!=FileResult.OK) 
+        &     || (^m(strDetail[1].od_number,mh) != header.oh_number))
+        begin
+            exitloop
+        end
 
-		
-		
-		xcall display_text(windowDetail,3,17,%string(mc+=1))
+        xcall display_text(itemWindow,3,17,%string(mc+=1))
+        xcall display_text(itemWindow,5,17,^m(strDetail[1].od_part,mh))
+        xcall display_text(itemWindow,6,17,%string(^m(strDetail[1].od_qty,mh)))
+        xcall display_text(itemWindow,7,17,%string(^m(strDetail[1].od_unit_price,mh),"$$$$,$$X.XX"))
+        begin
+            data onechar, a1
+            xcall wait_key(itemWindow,9,17,onechar)            
+        end
 
-		xcall display_text(windowDetail,5,16,^m(strDetail[1].od_part,mh))
+        xcall clear_box(itemWindow,5,17,7,60)
+    end
 
-		xcall display_text(windowDetail,6,17,%string(^m(strDetail[1].od_qty,mh)))
-		xcall display_text(windowDetail,7,17,%string(^m(strDetail[1].od_unit_price,mh),"$$$$,$$X.XX"))
-		begin
-			data keyPressed ,a1
-		xcall wait_key(windowDetail,8,17,keyPressed)
-		end
+    xcall delete_window(itemWindow)
 
-		xcall clear_box(windowDetail,5,17,7,60)
-	end
-	xcall delete_window(windowDetail)
-	return
+    return
 
 
 endmain
