@@ -12,13 +12,18 @@ main Orders
 	 
 
 	record
-		detail			,strDetail 
+		;detail			,strDetail 
 		system_date		,a14		;System Date (yyyymmddhhmmss)
 		overlay_date		,d8@system_date	;yyyymmdd
 		windowId		,d4
 		menuItem		,a1
 		windowOrderId		,d4
+		windowDetail		,d4
 		
+	record
+		mh			,D_HANDLE
+		ms			,d4
+		mc			,d4
 
 proc
 	call startup
@@ -43,6 +48,8 @@ startup,	;internal subroutine
 
 	;Display title
 	xcall w_caption(WC_SET,"My First Synergy Application")
+
+	
 
 	return
 process,	;internal subroutine
@@ -114,9 +121,57 @@ order_header,
 		xcall input(windowOrderId,6,25,header.oh_contact,true)
 		xcall input(windowOrderId,7,25,header.oh_salesrep,true)
 
+		;Allocate Dynamic Memory
+		mh = %mem_proc(DM_ALLOC,^size(strDetail)*(ms=3))
+		set ms,mc=0
+
+		call order_detail
+		
+		;Save the order
+
+
+		;Deallocate dynamic memory
+		mh = %mem_proc(DM_FREE,mh)
+
 		xcall clear_box(windowOrderId,2,21,7,60)
 	end
 	xcall delete_window(windowOrderId)
 	return
 	 
+order_detail,
+
+	
+
+	xcall create_window(windowDetail,"ORDER",12,60,7,10,"Add Items to Order")
+
+	xcall display_text(windowDetail,2,2,"Order number :" + %string(header.oh_number,"XXXXXX"))
+	xcall display_text(windowDetail,3,2,"Item number  :")
+	xcall display_text(windowDetail,5,2,"Part number  :")
+	xcall display_text(windowDetail,6,2,"Quantity     :")
+	xcall display_text(windowDetail,7,2,"Unit price   :")
+
+	repeat
+	begin
+		if((mc+=1)>ms)
+		begin
+			mh = %mem_proc(DM_RESIZ,^size(strDetail)*(ms+=3),mh)
+		end
+		^m(strDetail[mc].od_number,mh) = header.oh_number
+		^m(strDetail[mc].od_item,mh) = mc
+		xcall display_text(windowDetail,3,17,%string(mc)+" of " + %string(ms))
+
+		xcall input(windowDetail,5,16,^m(strDetail[mc].od_part,mh))
+
+		;checking entre order number
+		if(!^m(strDetail[mc].od_part,mh))
+			exitloop
+
+		xcall input(windowDetail,6,17,^m(strDetail[mc].od_qty,mh),true)
+		xcall input(windowDetail,7,17,^m(strDetail[mc].od_unit_price,mh),true)
+		
+
+		xcall clear_box(windowDetail,5,17,7,60)
+	end
+	xcall delete_window(windowDetail)
+	return
 endmain

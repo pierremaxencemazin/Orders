@@ -1,6 +1,6 @@
 structure strDetail
 	od_number	,d6	;Order Number
 	od_item		,d4	;Item Number
-	od_party	,a10	;Part Number
+	od_part		,a10	;Part Number
 	od_qty		,d5	;Quandtity Ordered
 	od_unit_price	,d8.2	;Unit Price
