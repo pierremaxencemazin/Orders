@@ -19,6 +19,10 @@ main Orders
 		menuItem		,a1
 		windowOrderId		,d4
 		windowDetail		,d4
+
+		;File channel numbers
+		chn_header		,d4
+		chn_detail		,d4
 		
 	record
 		mh			,D_HANDLE
@@ -49,8 +53,36 @@ startup,	;internal subroutine
 	;Display title
 	xcall w_caption(WC_SET,"My First Synergy Application")
 
+	;Open the order header file
+	repeat
+	begin
+		open(chn_header=0,U:I,"DAT:header.ism") [$ERR_FNF=hnf]
+		exitloop
+	hnf,
+		;Order header file is missing, create a new one
+		xcall isamc("DAT:header.ism",^size(header),1,"start=1,length=6,nodups,nomodify")
+		
+	end
 	
 
+
+	
+	repeat
+	begin
+		open(chn_detail=0,U:I,"DAT:detail.ism") [$ERR_FNF=dnf]
+		exitloop
+	dnf,
+		;Order header file is missing, create a new one
+		xcall isamc("DAT:detail.ism",^size(strDetail),1,"start=7:1,length=6:4,nodups,nomodify")
+		
+	end
+	
+
+
+
+
+
+	;Open the order detail file
 	return
 process,	;internal subroutine
 
@@ -81,7 +113,7 @@ process,	;internal subroutine
 		("E","e"),
 			exitloop
 		("V","v"),
-			xcall display_message("You selected VIEW")
+			call view_header
 		(),
 			xcall display_message("Invalid option")
 		endusing
@@ -89,6 +121,9 @@ process,	;internal subroutine
 	xcall delete_window(windowId)
 	return
 shutdown,	;internal subroutine
+
+	close chn_header,chn_detail
+
 	;Clear screen
 	display(1,$scr_clr(screen))
 	
@@ -116,6 +151,14 @@ order_header,
 		if(!header.oh_number)
 			exitloop
 
+		;Verify that the order does not exist
+		if(%file_access(FileOp.Find,chn_header,,header.oh_number)==FileResult.OK)
+		begin
+			xcall display_message("Order already exists!")
+			nextloop
+		end
+
+
 		xcall input(windowOrderId,4,25,header.oh_customer,true)
 		xcall input(windowOrderId,5,25,header.oh_date,,,true)
 		xcall input(windowOrderId,6,25,header.oh_contact,true)
@@ -128,7 +171,27 @@ order_header,
 		call order_detail
 		
 		;Save the order
-
+		if(mc)
+		begin
+			;First save the order header recod
+			if(%File_access(FileOp.Create,chn_header,header)!=FileResult.OK) then
+			begin
+				xcall display_message("Failed to save order header record!")
+			end
+			else
+			begin
+				data ix	,d4
+				for ix from 1 thru mc
+				begin
+					if(%File_access(FileOp.Create,chn_detail,^m(strDetail[ix],mh))!=FileResult.OK) 
+					begin
+						xcall display_message("Failed to save an order detail record!")
+						exitloop
+					end
+					
+				end
+			end
+		end
 
 		;Deallocate dynamic memory
 		mh = %mem_proc(DM_FREE,mh)
@@ -165,7 +228,10 @@ order_detail,
 		;checking entre order number
 		if(!^m(strDetail[mc].od_part,mh))
 			exitloop
-
+		begin
+			mc-=1
+			exitloop
+		end
 		xcall input(windowDetail,6,17,^m(strDetail[mc].od_qty,mh),true)
 		xcall input(windowDetail,7,17,^m(strDetail[mc].od_unit_price,mh),true)
 		
@@ -174,4 +240,104 @@ order_detail,
 	end
 	xcall delete_window(windowDetail)
 	return
+
+
+
+view_header,
+	xcall create_window(windowOrderId,"ORDER",12,60,7,10,"View an order")
+
+	xcall display_text(windowOrderId,2,2,"Order number          :")
+	xcall display_text(windowOrderId,4,2,"Customer account code :")
+	xcall display_text(windowOrderId,5,2,"Order date            :")
+	xcall display_text(windowOrderId,6,2,"Order placed by       :")
+	xcall display_text(windowOrderId,7,2,"Sales rep code        :")
+	xcall display_text(windowOrderId,8,2,"Press a key           :")
+	repeat
+	begin
+		xcall input(windowOrderId,2,25,header.oh_number)
+
+		;checking entre order number
+		if(!header.oh_number)
+			exitloop
+
+		;Verify that the order does not exist
+		if(%file_access(FileOp.Read,chn_header,header,header.oh_number)!=FileResult.OK)
+		begin
+			xcall display_message("Order does not exists!")
+			nextloop
+		end
+
+
+		xcall display_text(windowOrderId,4,25,header.oh_customer)
+		xcall display_text(windowOrderId,5,25,%string(header.oh_date,"XXXX/XX/XX"))
+		xcall display_text(windowOrderId,6,25,header.oh_contact)
+		xcall display_text(windowOrderId,7,25,%string(header.oh_salesrep))
+
+		begin
+			data keyPressed ,a1
+			xcall wait_key(windowOrderId,8,25,keyPressed)
+		end
+		;Allocate Dynamic Memory
+		mh = %mem_proc(DM_ALLOC,^size(strDetail)*(ms=1))
+		set ms,mc=0
+
+		call view_detail
+		
+		
+		;Deallocate dynamic memory
+		mh = %mem_proc(DM_FREE,mh)
+
+		xcall clear_box(windowOrderId,2,21,7,60)
+	end
+	xcall delete_window(windowOrderId)
+	return
+	 
+view_detail,
+
+	
+
+	xcall create_window(windowDetail,"ORDER",12,60,7,10,"View Order Items")
+
+	xcall display_text(windowDetail,2,2,"Order number :" + %string(header.oh_number,"XXXXXX"))
+	xcall display_text(windowDetail,3,2,"Item number  :")
+	xcall display_text(windowDetail,5,2,"Part number  :")
+	xcall display_text(windowDetail,6,2,"Quantity     :")
+	xcall display_text(windowDetail,7,2,"Unit price   :")
+	xcall display_text(windowDetail,8,2,"Press a key  :")
+
+	;;Position to the first item for the order
+	if(%file_access(FileOp.Find,chn_detail,,header.oh_number)!=FileResult.OK)
+	begin
+		nop
+	end
+
+
+	repeat
+	begin
+		
+		if((%file_access(FileOp.ReadNext,chn_detail,^m(strDetail[1],mh))!=FileResult.OK)
+			&	||(^m(strDetail[1].od_number,mh) != header.oh_number))
+		begin
+			exitloop
+		end
+
+		
+		
+		xcall display_text(windowDetail,3,17,%string(mc+=1))
+
+		xcall display_text(windowDetail,5,16,^m(strDetail[1].od_part,mh))
+
+		xcall display_text(windowDetail,6,17,%string(^m(strDetail[1].od_qty,mh)))
+		xcall display_text(windowDetail,7,17,%string(^m(strDetail[1].od_unit_price,mh),"$$$$,$$X.XX"))
+		begin
+			data keyPressed ,a1
+		xcall wait_key(windowDetail,8,17,keyPressed)
+		end
+
+		xcall clear_box(windowDetail,5,17,7,60)
+	end
+	xcall delete_window(windowDetail)
+	return
+
+
 endmain
