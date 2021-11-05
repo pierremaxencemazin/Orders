@@ -49,6 +49,7 @@
     <DebugOptimize>Optimize</DebugOptimize>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="clear_box.dbl" />
     <Compile Include="create_window.dbl" />
     <Compile Include="delete_window.dbl" />
     <Compile Include="display_message.dbl" />

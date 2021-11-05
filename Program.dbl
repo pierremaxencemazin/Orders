@@ -12,11 +12,12 @@ main Orders
 	 
 
 	record
-		detail		,strDetail 
-		system_date	,a14		;System Date (yyyymmddhhmmss)
-		overlay_date	,d8@system_date	;yyyymmdd
+		detail			,strDetail 
+		system_date		,a14		;System Date (yyyymmddhhmmss)
+		overlay_date		,d8@system_date	;yyyymmdd
 		windowId		,d4
 		menuItem		,a1
+		windowOrderId		,d4
 		
 
 proc
@@ -69,7 +70,7 @@ process,	;internal subroutine
 
 		using menuItem select
 		("A","a"),
-			xcall display_message("You selected ADD")
+			call order_header
 		("E","e"),
 			exitloop
 		("V","v"),
@@ -89,6 +90,33 @@ shutdown,	;internal subroutine
 
 	;Close terminal
 	close 1
+	return
+
+order_header,
+	xcall create_window(windowOrderId,"ORDER",12,60,7,10,"Order Processing Menu")
+
+	xcall display_text(windowOrderId,2,2,"Order number          :")
+	xcall display_text(windowOrderId,4,2,"Customer account code :")
+	xcall display_text(windowOrderId,5,2,"Order date            :")
+	xcall display_text(windowOrderId,6,2,"Order placed by       :")
+	xcall display_text(windowOrderId,7,2,"Sales rep code        :")
+
+	repeat
+	begin
+		xcall input(windowOrderId,2,25,header.oh_number)
+
+		;checking entre order number
+		if(!header.oh_number)
+			exitloop
+
+		xcall input(windowOrderId,4,25,header.oh_customer,true)
+		xcall input(windowOrderId,5,25,header.oh_date,,,true)
+		xcall input(windowOrderId,6,25,header.oh_contact,true)
+		xcall input(windowOrderId,7,25,header.oh_salesrep,true)
+
+		xcall clear_box(windowOrderId,2,21,7,60)
+	end
+	xcall delete_window(windowOrderId)
 	return
 	 
 endmain
