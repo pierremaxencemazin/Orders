@@ -1,0 +1,48 @@
+﻿<Project ToolsVersion="15.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <Name>Repository</Name>
+    <OutputName>Repository1</OutputName>
+    <ProjectGuid>{c02f9d38-5fd4-4777-80f7-cd5e12bf1426}</ProjectGuid>
+    <ProjectTypeGuids>{1BD24377-84D3-44B8-B8F3-81C1EB3E22B4};{BBD0F5D1-1CC4-42fd-BA4C-A96779C64378}</ProjectTypeGuids>
+    <NugetTargetMoniker>RPS,Version=1.0</NugetTargetMoniker>
+    <OutputType>RPS</OutputType>
+    <EnableCommonProperties>True</EnableCommonProperties>
+    <AssemblyName>Repository1</AssemblyName>
+    <RootNamespace>Repository1</RootNamespace>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <OutputPath>bin\Debug\</OutputPath>
+    <UnevaluatedOutputPath>bin\Debug\</UnevaluatedOutputPath>
+    <MOutputName>rpsmain</MOutputName>
+    <TOutputName>rpstext</TOutputName>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <OutputPath>bin\Release\</OutputPath>
+    <UnevaluatedOutputPath>bin\Release\</UnevaluatedOutputPath>
+    <MOutputName>rpsmain</MOutputName>
+    <TOutputName>rpstext</TOutputName>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="repository.scm" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+  </ItemGroup>
+  <PropertyGroup>
+    <PreBuildEvent>
+    </PreBuildEvent>
+    <PostBuildEvent>
+    </PostBuildEvent>
+  </PropertyGroup>
+  <Import Project="..\packages\Synergex.SynergyDE.Build.11.1.1040.2749\build\rps\Synergex.SynergyDE.Build.targets" Condition="Exists('..\packages\Synergex.SynergyDE.Build.11.1.1040.2749\build\rps\Synergex.SynergyDE.Build.targets')" />
+  <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
+    <PropertyGroup>
+      <ErrorText>Ce projet fait référence à des packages NuGet qui sont manquants sur cet ordinateur. Utilisez l'option de restauration des packages NuGet pour les télécharger. Pour plus d'informations, consultez http://go.microsoft.com/fwlink/?LinkID=322105. Le fichier manquant est : {0}.</ErrorText>
+    </PropertyGroup>
+    <Error Condition="!Exists('..\packages\Synergex.SynergyDE.Build.11.1.1040.2749\build\rps\Synergex.SynergyDE.Build.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\packages\Synergex.SynergyDE.Build.11.1.1040.2749\build\rps\Synergex.SynergyDE.Build.targets'))" />
+  </Target>
+</Project>
