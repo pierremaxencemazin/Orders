@@ -194,7 +194,7 @@ order_header,
                 begin
                     if (%file_access(FileOp.Create,chnDetail,^m(strDetail[ix],mh))!=FileResult.OK)
                     begin
-                        xcall display_message("Failed to an order detail record!")
+                        xcall display_message("Failed to add order detail record!")
                         exitloop
                     end
                 end
